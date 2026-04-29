@@ -3,18 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>TEAM MAVERICKS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./index.css">
 </head>
 <body>
-    <form action="POST">
-        Result 1: <input type="text" name="Result 1" id="r1"><br>
-        Result 2: <input type="text" name="Result 2" id="r2"><br>
+    <div class="celebration-overlay" id="celebration-overlay" aria-hidden="true">
+        <div class="overlay-backdrop"></div>
+        <div class="confetti-layer" id="confetti-layer"></div>
+        <div class="winner-panel" role="dialog" aria-modal="true" aria-labelledby="winner-message">
+            <div class="trophy-wrap" aria-hidden="true">
+                <div class="trophy-glow"></div>
+                <div class="trophy">&#127942;</div>
+            </div>
+            <p class="winner-kicker">Prediction Result</p>
+            <h2 id="winner-message">Tied! Both models are equal!</h2>
+            <button type="button" class="close-overlay" id="close-overlay">Close</button>
+        </div>
+    </div>
 
-            <input type="submit" value="Submit">
+    <div class="page-shell">
+        <div class="grid-overlay" aria-hidden="true"></div>
+        <div class="glow glow-left" aria-hidden="true"></div>
+        <div class="glow glow-right" aria-hidden="true"></div>
 
-    
+        <main class="app-card">
+            <header class="hero">
+                <p class="eyebrow">Global Preference Tester</p>
+                <h1>TEAM MAVERICKS</h1>
+                <p class="hero-copy">A bold side-by-side judging interface for comparing model outputs with clarity, motion, and focus.</p>
+            </header>
 
+            <form class="predictor-form">
+                <section class="field-row two-column">
+                    <div class="field">
+                        <label for="model-a-input">Model A</label>
+                        <div class="search-select" data-model-picker="model-a">
+                            <input id="model-a-input" class="search-select-input" type="text" autocomplete="off" placeholder="Search a model..." role="combobox" aria-expanded="false" aria-autocomplete="list">
+                            <input type="hidden" id="model-a" name="model_a">
+                            <button type="button" class="search-select-toggle" aria-label="Toggle Model A dropdown"></button>
+                            <div class="search-select-menu" id="model-a-menu" role="listbox"></div>
+                        </div>
+                    </div>
 
-    </form>
+                    <div class="field">
+                        <label for="model-b-input">Model B</label>
+                        <div class="search-select" data-model-picker="model-b">
+                            <input id="model-b-input" class="search-select-input" type="text" autocomplete="off" placeholder="Search a model..." role="combobox" aria-expanded="false" aria-autocomplete="list">
+                            <input type="hidden" id="model-b" name="model_b">
+                            <button type="button" class="search-select-toggle" aria-label="Toggle Model B dropdown"></button>
+                            <div class="search-select-menu" id="model-b-menu" role="listbox"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="field-row">
+                    <div class="field">
+                        <label for="prompt">Prompt</label>
+                        <textarea id="prompt" name="prompt" placeholder="Write the prompt you want both models to answer..."></textarea>
+                    </div>
+                </section>
+
+                <section class="field-row two-column">
+                    <div class="field">
+                        <label for="response-a">Response A</label>
+                        <textarea id="response-a" name="response_a" class="response-box" placeholder="Paste or generate Model A response here..."></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label for="response-b">Response B</label>
+                        <textarea id="response-b" name="response_b" class="response-box" placeholder="Paste or generate Model B response here..."></textarea>
+                    </div>
+                </section>
+
+                <div class="button-row">
+                    <button type="submit">Predict</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        const modelOptions = [
+            'alpaca-13b',
+            'chatglm-6b',
+            'chatglm2-6b',
+            'chatglm3-6b',
+            'claude-1',
+            'claude-2.0',
+            'claude-2.1',
+            'claude-instant-1',
+            'codellama-34b-instruct',
+            'deepseek-llm-67b-chat',
+            'dolly-v2-12b',
+            'dolphin-2.2.1-mistral-7b',
+            'falcon-180b-chat',
+            'fastchat-t5-3b',
+            'gemini-pro',
+            'gemini-pro-dev-api',
+            'gpt-3.5-turbo-0125',
+            'gpt-3.5-turbo-0314',
+            'gpt-3.5-turbo-0613',
+            'gpt-3.5-turbo-1106',
+            'gpt-4-0125-preview',
+            'gpt-4-0314',
+            'gpt-4-0613',
+            'gpt-4-1106-preview',
+            'gpt4all-13b-snoozy',
+            'guanaco-33b',
+            'koala-13b',
+            'llama-13b',
+            'llama-2-13b-chat',
+            'llama-2-70b-chat',
+            'llama-2-7b-chat',
+            'llama2-70b-steerlm-chat',
+            'mistral-7b-instruct',
+            'mistral-7b-instruct-v0.2',
+            'mistral-medium',
+            'mixtral-8x7b-instruct-v0.1',
+            'mpt-30b-chat',
+            'mpt-7b-chat',
+            'nous-hermes-2-mixtral-8x7b-dpo',
+            'oasst-pythia-12b',
+            'openchat-3.5',
+            'openchat-3.5-0106',
+            'openhermes-2.5-mistral-7b',
+            'palm-2',
+            'pplx-70b-online',
+            'pplx-7b-online',
+            'qwen-14b-chat',
+            'qwen1.5-4b-chat',
+            'qwen1.5-72b-chat',
+            'qwen1.5-7b-chat',
+            'RWKV-4-Raven-14B',
+            'solar-10.7b-instruct-v1.0',
+            'stablelm-tuned-alpha-7b',
+            'starling-lm-7b-alpha',
+            'stripedhyena-nous-7b',
+            'tulu-2-dpo-70b',
+            'vicuna-13b',
+            'vicuna-33b',
+            'vicuna-7b',
+            'wizardlm-13b',
+            'wizardlm-70b',
+            'yi-34b-chat',
+            'zephyr-7b-alpha',
+            'zephyr-7b-beta'
+        ];
+
+        const form = document.querySelector('.predictor-form');
+        const overlay = document.getElementById('celebration-overlay');
+        const confettiLayer = document.getElementById('confetti-layer');
+        const winnerMessage = document.getElementById('winner-message');
+        const closeOverlayButton = document.getElementById('close-overlay');
+        const modelASelect = document.getElementById('model-a');
+        const modelBSelect = document.getElementById('model-b');
+
+        function closeAllMenus(exceptPicker) {
+            document.querySelectorAll('.search-select').forEach((picker) => {
+                if (picker !== exceptPicker) {
+                    picker.classList.remove('is-open');
+                    picker.querySelector('.search-select-input').setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        function setupModelPicker(picker) {
+            const textInput = picker.querySelector('.search-select-input');
+            const hiddenInput = picker.querySelector('input[type="hidden"]');
+            const toggleButton = picker.querySelector('.search-select-toggle');
+            const menu = picker.querySelector('.search-select-menu');
+            let activeOption = '';
+
+            function openMenu() {
+                closeAllMenus(picker);
+                picker.classList.add('is-open');
+                textInput.setAttribute('aria-expanded', 'true');
+                renderOptions(textInput.value);
+            }
+
+            function closeMenu() {
+                picker.classList.remove('is-open');
+                textInput.setAttribute('aria-expanded', 'false');
+            }
+
+            function renderOptions(filterText = '') {
+                const normalizedFilter = filterText.trim().toLowerCase();
+                const matches = modelOptions.filter((option) => option.toLowerCase().includes(normalizedFilter));
+                const orderedMatches = activeOption && matches.includes(activeOption)
+                    ? [activeOption, ...matches.filter((option) => option !== activeOption)]
+                    : matches;
+
+                menu.innerHTML = '';
+
+                if (orderedMatches.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'search-select-empty';
+                    emptyState.textContent = 'No matching models found';
+                    menu.appendChild(emptyState);
+                    return;
+                }
+
+                orderedMatches.forEach((option) => {
+                    const optionButton = document.createElement('button');
+                    optionButton.type = 'button';
+                    optionButton.className = 'search-select-option';
+                    if (option === activeOption) {
+                        optionButton.classList.add('is-active');
+                    }
+                    optionButton.textContent = option;
+                    optionButton.setAttribute('role', 'option');
+                    optionButton.addEventListener('click', () => {
+                        textInput.value = option;
+                        hiddenInput.value = option;
+                        activeOption = option;
+                        closeMenu();
+                        renderOptions(textInput.value);
+                    });
+                    menu.appendChild(optionButton);
+                });
+            }
+
+            textInput.addEventListener('focus', () => {
+                openMenu();
+            });
+
+            textInput.addEventListener('input', () => {
+                hiddenInput.value = textInput.value.trim();
+                activeOption = hiddenInput.value;
+                openMenu();
+            });
+
+            textInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeMenu();
+                }
+            });
+
+            toggleButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (picker.classList.contains('is-open')) {
+                    closeMenu();
+                } else {
+                    openMenu();
+                    textInput.focus();
+                }
+            });
+
+            renderOptions();
+        }
+
+        document.querySelectorAll('.search-select').forEach(setupModelPicker);
+
+        document.addEventListener('click', (event) => {
+            const picker = event.target.closest('.search-select');
+            closeAllMenus(picker || null);
+        });
+
+        function createConfettiPiece(index) {
+            const piece = document.createElement('span');
+            piece.className = 'confetti';
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.animationDelay = `${Math.random() * 0.9}s`;
+            piece.style.animationDuration = `${4.2 + Math.random() * 1.8}s`;
+            piece.style.setProperty('--drift', `${-120 + Math.random() * 240}px`);
+            piece.style.setProperty('--spin', `${180 + Math.random() * 360}deg`);
+            piece.style.setProperty('--size', `${8 + Math.random() * 10}px`);
+            piece.style.setProperty('--hue', `${index % 2 === 0 ? '#33b8ff' : '#7ef3d0'}`);
+            return piece;
+        }
+
+        function burstConfetti() {
+            confettiLayer.innerHTML = '';
+
+            for (let index = 0; index < 54; index += 1) {
+                confettiLayer.appendChild(createConfettiPiece(index));
+            }
+        }
+
+        function openCelebration(message) {
+            winnerMessage.textContent = message;
+            burstConfetti();
+            overlay.classList.add('is-visible');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overlay-open');
+        }
+
+        function closeCelebration() {
+            overlay.classList.remove('is-visible');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overlay-open');
+        }
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const modelAName = modelASelect.value || 'Model A';
+            const modelBName = modelBSelect.value || 'Model B';
+
+            const resultMessage = 'Tied! Both models are equal!';
+
+            void modelAName;
+            void modelBName;
+
+            openCelebration(resultMessage);
+        });
+
+        closeOverlayButton.addEventListener('click', closeCelebration);
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay || event.target.classList.contains('overlay-backdrop')) {
+                closeCelebration();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && overlay.classList.contains('is-visible')) {
+                closeCelebration();
+            }
+        });
+    </script>
 </body>
 </html>
