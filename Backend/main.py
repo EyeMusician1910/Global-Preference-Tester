@@ -1,14 +1,21 @@
+import sys
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 
 Winner = Literal["model_a", "model_b", "tie"]
+
+
+class LegacyPredictionRequest(BaseModel):
+    prompt: str
+    response_a: str
+    response_b: str
 
 
 class PredictionRequest(BaseModel):
@@ -40,6 +47,7 @@ app.add_middleware(
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = PROJECT_DIR / "Frontend"
+ML_DIR = PROJECT_DIR / "ML"
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
@@ -112,7 +120,7 @@ MODEL_OPTIONS = [
 
 
 def predict_with_ml_model(payload: PredictionRequest) -> PredictionResponse:
-    """Replace this function with the trained ML model inference call."""
+    """Fallback heuristic used by the frontend API."""
     response_a_words = len(payload.response_a.split())
     response_b_words = len(payload.response_b.split())
 
@@ -147,6 +155,58 @@ def predict_with_ml_model(payload: PredictionRequest) -> PredictionResponse:
     )
 
 
+def build_prediction_response(payload: PredictionRequest) -> PredictionResponse:
+    """Use the trained model when available and fall back to the heuristic otherwise."""
+    if MODEL is None or VECT is None:
+        return predict_with_ml_model(payload)
+
+    label, probs = predict(MODEL, VECT, payload.prompt, payload.response_a, payload.response_b)
+    model_a_score = round(float(probs[0]), 4)
+    model_b_score = round(float(probs[1]), 4)
+    tie_score = round(float(probs[2]), 4)
+
+    if label == "A":
+        return PredictionResponse(
+            winner="model_a",
+            winner_model=payload.model_a,
+            confidence=model_a_score,
+            label=f"Model A is better: {payload.model_a}",
+            scores={"model_a": model_a_score, "model_b": model_b_score, "tie": tie_score},
+        )
+
+    if label == "B":
+        return PredictionResponse(
+            winner="model_b",
+            winner_model=payload.model_b,
+            confidence=model_b_score,
+            label=f"Model B is better: {payload.model_b}",
+            scores={"model_a": model_a_score, "model_b": model_b_score, "tie": tie_score},
+        )
+
+    return PredictionResponse(
+        winner="tie",
+        winner_model=None,
+        confidence=tie_score,
+        label="Tied! Both models are equal!",
+        scores={"model_a": model_a_score, "model_b": model_b_score, "tie": tie_score},
+    )
+
+
+if str(ML_DIR) not in sys.path:
+    sys.path.append(str(ML_DIR))
+
+try:
+    from predict_model import load_model, predict  # type: ignore
+
+    MODEL, VECT = load_model()
+except Exception as exc:
+    MODEL = None
+    VECT = None
+    _load_error = str(exc)
+else:
+    _load_error = None
+
+
 @app.get("/")
 async def root():
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -163,8 +223,34 @@ async def models():
 
 
 @app.post("/api/predict", response_model=PredictionResponse)
-async def predict(payload: PredictionRequest):
+async def api_predict(payload: PredictionRequest):
     if payload.model_a.strip() == payload.model_b.strip():
         raise HTTPException(status_code=400, detail="Model A and Model B must be different.")
 
-    return predict_with_ml_model(payload)
+    try:
+        return build_prediction_response(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/health")
+async def health():
+    return {"model_loaded": MODEL is not None, "error": _load_error}
+
+
+@app.post("/predict")
+async def predict_endpoint(payload: LegacyPredictionRequest) -> Any:
+    """Return preferred response (A / B / Tie) and class probabilities."""
+    if MODEL is None or VECT is None:
+        raise HTTPException(status_code=500, detail={"error": "model not loaded", "reason": _load_error})
+
+    try:
+        label, probs = predict(MODEL, VECT, payload.prompt, payload.response_a, payload.response_b)
+        probs_list = {
+            "winner_model_a": float(probs[0]),
+            "winner_model_b": float(probs[1]),
+            "winner_tie": float(probs[2]),
+        }
+        return JSONResponse({"prediction": label, "probabilities": probs_list})
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
