@@ -156,7 +156,7 @@ def predict_with_ml_model(payload: PredictionRequest) -> PredictionResponse:
 
 
 def build_prediction_response(payload: PredictionRequest) -> PredictionResponse:
-    """Use the trained model when available and fall back to the heuristic otherwise."""
+    """Use the trained ensemble when loaded; otherwise word-count heuristic."""
     if MODEL is None or VECT is None:
         return predict_with_ml_model(payload)
 
@@ -235,7 +235,29 @@ async def api_predict(payload: PredictionRequest):
 
 @app.get("/health")
 async def health():
-    return {"model_loaded": MODEL is not None, "error": _load_error}
+    meta = getattr(MODEL, "metadata", None) if MODEL is not None else None
+    return {
+        "model_loaded": MODEL is not None,
+        "predictor": "ensemble_sgd_nb_logreg" if MODEL is not None else None,
+        "error": _load_error,
+        "eval_metrics": (
+            {
+                "log_loss": meta.get("eval_log_loss"),
+                "macro_f1": meta.get("eval_macro_f1"),
+                "accuracy": meta.get("eval_accuracy"),
+            }
+            if isinstance(meta, dict)
+            else None
+        ),
+    }
+
+
+@app.get("/api/model-info")
+async def model_info():
+    """Training metadata from ``model_metadata.json`` (when ensemble is loaded)."""
+    if MODEL is None:
+        return {"loaded": False, "error": _load_error}
+    return {"loaded": True, "metadata": getattr(MODEL, "metadata", {})}
 
 
 @app.post("/predict")

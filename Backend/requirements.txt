@@ -1,3 +1,14 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
+
+# Ensemble inference (TF-IDF + sklearn classifiers — pin near training env for joblib parity)
+numpy==1.26.4
+scipy==1.13.0
+scikit-learn==1.4.2
+joblib==1.4.2
+
+# Optional — match training metadata for closest feature parity
+textstat>=0.7.3
+textblob>=0.18.0
+vaderSentiment>=3.3.2

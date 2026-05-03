@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# Trained blobs (often > GitHub's 100MB/file limit — copy locally; see ML/checkpoints/README.md)
+ML/checkpoints/artifacts/
+ML/checkpoints/model/*.pkl
+ML/checkpoints/model/*.npy
